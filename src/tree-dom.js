@@ -1,26 +1,31 @@
 
 import diff from 'js-tree-diff';
 
-export const create = ( cb, _document = document )=> {
+const _document = typeof document === 'undefined' ? {
+	createElement: ()=> { throw new Error('Render library not defined.'); },
+	createTextNode: ()=> { throw new Error('Render library not defined.'); }
+} : document;
+
+export const create = ( cb, library = _document )=> {
 	var prevTree = null;
 	const render = (  root, nextTree )=> {
 		if ( prevTree === null ) {
-			build( root, nextTree, _document );
+			build( root, nextTree, library );
 		}
 		else {
 			const patches = diff( prevTree, nextTree );
-			patch( root, patches, _document );
+			patch( root, patches, library );
 		}
 		prevTree = nextTree;
 	};
 	cb( render );
 };
 
-const build = ( root, tree, _document )=> {
+const build = ( root, tree, library )=> {
 	const insert = ( parent, node )=> {
 		const { key, label, attrs, text, children } = node;
 		if ( label !== 'text' ) {
-			const elementNode = _document.createElement( label );
+			const elementNode = library.createElement( label );
 			Object
 				.keys( attrs )
 				.forEach( attr =>
@@ -31,14 +36,14 @@ const build = ( root, tree, _document )=> {
 			parent.appendChild( elementNode );
 		}
 		else {
-			const textNode = _document.createTextNode( text );
+			const textNode = library.createTextNode( text );
 			parent.appendChild( textNode );
 		}
 	};
 	insert( root, tree );
 };
 
-const patch = ( root, patches, _document )=> {
+const patch = ( root, patches, library )=> {
 	const find = ( base, path, key )=> {
 		const getChild = ( parent, index )=> {
 			return parent.childNodes[index];
